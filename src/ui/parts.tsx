@@ -132,6 +132,15 @@ export function EvalGraph({ review, index, onSelect, mono }: { review: GameRevie
 }
 
 /* ---------------------------------------------------------------- move list */
+/** Scroll only the move list (not the page) so the current move stays visible. */
+function keepVisible(el: HTMLElement | null) {
+  const box = el?.closest('.moves') as HTMLElement | null;
+  if (!el || !box) return;
+  const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+  if (top < box.scrollTop) box.scrollTop = top - 8;
+  else if (top + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + el.offsetHeight - box.clientHeight + 8;
+}
+
 export function MoveList({ review, index, onSelect, mono }: { review: GameReview; index: number; onSelect: (i: number) => void; mono: boolean }) {
   const rows: { no: number; w?: number; b?: number }[] = [];
   review.game.plies.forEach((p, i) => {
@@ -151,7 +160,7 @@ export function MoveList({ review, index, onSelect, mono }: { review: GameReview
         aria-current={current}
         aria-label={`${p.moveNumber}${p.side === 'w' ? '.' : '...'} ${p.san}${m ? `, ${MARKS[m.verdict.classification].label}` : ''}`}
         onClick={() => onSelect(ply + 1)}
-        ref={current ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
+        ref={current ? keepVisible : undefined}
       >
         {m && <Mark c={m.verdict.classification} size={15} mono={mono} />}
         <span>{p.san}</span>

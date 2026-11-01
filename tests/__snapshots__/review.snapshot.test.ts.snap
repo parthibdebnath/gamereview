@@ -3,7 +3,7 @@
 exports[`full-game review snapshots > century 1`] = `
 {
   "black": {
-    "accuracy": "97.8",
+    "accuracy": "98.3",
     "acpl": 11,
     "counts": {
       "best": 26,
@@ -12,7 +12,7 @@ exports[`full-game review snapshots > century 1`] = `
       "excellent": 4,
       "good": 4,
     },
-    "rating": "2025 (1675-2375)",
+    "rating": "2050 (1700-2400)",
   },
   "keyMoments": [
     20,
@@ -107,7 +107,7 @@ exports[`full-game review snapshots > century 1`] = `
   ],
   "opening": "English Opening: Anglo-Indian Defense, King's Indian Formation",
   "white": {
-    "accuracy": "91.1",
+    "accuracy": "92.4",
     "acpl": 32,
     "counts": {
       "best": 17,
@@ -118,7 +118,7 @@ exports[`full-game review snapshots > century 1`] = `
       "inaccuracy": 1,
       "mistake": 2,
     },
-    "rating": "2025 (1675-2375)",
+    "rating": "2100 (1750-2450)",
   },
 }
 `;
@@ -126,7 +126,7 @@ exports[`full-game review snapshots > century 1`] = `
 exports[`full-game review snapshots > evergreen 1`] = `
 {
   "black": {
-    "accuracy": "75.9",
+    "accuracy": "76.0",
     "acpl": 68,
     "counts": {
       "best": 9,
@@ -197,7 +197,7 @@ exports[`full-game review snapshots > evergreen 1`] = `
   ],
   "opening": "Italian Game: Evans Gambit, Dufresne Defense",
   "white": {
-    "accuracy": "88.5",
+    "accuracy": "88.7",
     "acpl": 27,
     "counts": {
       "best": 10,
@@ -216,7 +216,7 @@ exports[`full-game review snapshots > evergreen 1`] = `
 exports[`full-game review snapshots > immortal 1`] = `
 {
   "black": {
-    "accuracy": "71.3",
+    "accuracy": "72.2",
     "acpl": 86,
     "counts": {
       "best": 6,
@@ -228,7 +228,7 @@ exports[`full-game review snapshots > immortal 1`] = `
       "inaccuracy": 1,
       "mistake": 3,
     },
-    "rating": "1550 (1200-1900)",
+    "rating": "1575 (1225-1925)",
   },
   "keyMoments": [
     18,
@@ -287,7 +287,7 @@ exports[`full-game review snapshots > immortal 1`] = `
   ],
   "opening": "King's Gambit Accepted: Bishop's Gambit, Bryan Countergambit",
   "white": {
-    "accuracy": "79.4",
+    "accuracy": "79.7",
     "acpl": 43,
     "counts": {
       "best": 13,
@@ -296,7 +296,7 @@ exports[`full-game review snapshots > immortal 1`] = `
       "inaccuracy": 4,
       "mistake": 1,
     },
-    "rating": "1550 (1200-1900)",
+    "rating": "1525 (1175-1875)",
   },
 }
 `;
@@ -337,7 +337,7 @@ exports[`full-game review snapshots > legal 1`] = `
   ],
   "opening": "Philidor Defense",
   "white": {
-    "accuracy": "97.3",
+    "accuracy": "98.1",
     "acpl": 7,
     "counts": {
       "best": 2,
@@ -345,7 +345,7 @@ exports[`full-game review snapshots > legal 1`] = `
       "brilliant": 1,
       "excellent": 1,
     },
-    "rating": "1400 (1050-1750)",
+    "rating": "1425 (1075-1775)",
   },
 }
 `;
@@ -353,7 +353,7 @@ exports[`full-game review snapshots > legal 1`] = `
 exports[`full-game review snapshots > lichess-900 1`] = `
 {
   "black": {
-    "accuracy": "89.7",
+    "accuracy": "90.0",
     "acpl": 59,
     "counts": {
       "best": 16,
@@ -481,7 +481,7 @@ exports[`full-game review snapshots > lichess-900 1`] = `
   ],
   "opening": "Three Knights Opening",
   "white": {
-    "accuracy": "93.3",
+    "accuracy": "93.6",
     "acpl": 45,
     "counts": {
       "best": 21,
@@ -491,7 +491,7 @@ exports[`full-game review snapshots > lichess-900 1`] = `
       "inaccuracy": 7,
       "miss": 1,
     },
-    "rating": "1600 (1250-1950)",
+    "rating": "1625 (1275-1975)",
   },
 }
 `;
@@ -499,7 +499,7 @@ exports[`full-game review snapshots > lichess-900 1`] = `
 exports[`full-game review snapshots > lichess-1500 1`] = `
 {
   "black": {
-    "accuracy": "90.1",
+    "accuracy": "90.5",
     "acpl": 57,
     "counts": {
       "best": 16,
@@ -605,7 +605,7 @@ exports[`full-game review snapshots > lichess-1500 1`] = `
   ],
   "opening": "Horwitz Defense",
   "white": {
-    "accuracy": "83.7",
+    "accuracy": "85.8",
     "acpl": 81,
     "counts": {
       "best": 13,
@@ -624,7 +624,7 @@ exports[`full-game review snapshots > lichess-1500 1`] = `
 exports[`full-game review snapshots > lichess-2100 1`] = `
 {
   "black": {
-    "accuracy": "81.6",
+    "accuracy": "81.8",
     "acpl": 40,
     "counts": {
       "best": 15,
@@ -723,7 +723,7 @@ exports[`full-game review snapshots > lichess-2100 1`] = `
   ],
   "opening": "French Defense: Advance Variation",
   "white": {
-    "accuracy": "89.7",
+    "accuracy": "90.2",
     "acpl": 26,
     "counts": {
       "best": 20,
@@ -742,7 +742,7 @@ exports[`full-game review snapshots > lichess-2100 1`] = `
 exports[`full-game review snapshots > opera 1`] = `
 {
   "black": {
-    "accuracy": "83.0",
+    "accuracy": "83.1",
     "acpl": 59,
     "counts": {
       "best": 3,
@@ -798,7 +798,7 @@ exports[`full-game review snapshots > opera 1`] = `
   ],
   "opening": "Philidor Defense",
   "white": {
-    "accuracy": "97.9",
+    "accuracy": "99.2",
     "acpl": 8,
     "counts": {
       "best": 8,
@@ -807,7 +807,7 @@ exports[`full-game review snapshots > opera 1`] = `
       "excellent": 1,
       "good": 2,
     },
-    "rating": "1725 (1375-2075)",
+    "rating": "1775 (1425-2125)",
   },
 }
 `;

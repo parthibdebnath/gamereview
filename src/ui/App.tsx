@@ -96,14 +96,14 @@ export function App() {
     if (!needLive || !displayFen) return;
     let cancelled = false;
     const depth = settings.preset === 'fast' ? 14 : settings.preset === 'deep' ? 22 : 18;
-    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, depth, multipv: 1 })
+    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, mode: settings.engineMode, depth, multipv: 1 })
       .then((a) => !cancelled && a && setLive({ fen: displayFen, a }))
       .catch(() => undefined);
     return () => {
       cancelled = true;
       stopLive();
     };
-  }, [needLive, displayFen, settings.preset, settings.threads]);
+  }, [needLive, displayFen, settings.preset, settings.threads, settings.engineMode]);
 
   // Auto-play of engine lines.
   useEffect(() => {

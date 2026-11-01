@@ -125,6 +125,10 @@ export function Board(props: BoardProps) {
   return (
     <div
       ref={el}
+      // The board can move without resizing (e.g. the progress bar above it disappears), which
+      // leaves chessground's cached bounds stale: refresh them before it handles the press.
+      onMouseDownCapture={() => api.current?.state.dom.bounds.clear()}
+      onTouchStartCapture={() => api.current?.state.dom.bounds.clear()}
       className="cg-wrap"
       style={props.lastMoveColor ? ({ ['--lm' as string]: props.lastMoveColor } as React.CSSProperties) : undefined}
       role="img"

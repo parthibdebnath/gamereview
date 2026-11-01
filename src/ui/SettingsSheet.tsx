@@ -74,7 +74,7 @@ export function SettingsSheet({ settings, onChange, onClose, engine }: { setting
               { id: 'deep', label: 'Deep' },
             ]}
             value={settings.preset}
-            onChange={(v) => onChange({ ...settings, preset: v, depth: undefined })}
+            onChange={(v) => onChange({ ...settings, preset: v, depth: undefined, multipv: PRESETS[v].multipv })}
           />
           <Slider title="Search depth" value={depth} min={8} max={24} step={1} format={(v) => `${v}`} onChange={(v) => set('depth', v)} />
           <Row title="Engine lines" desc="Lines per position; 3 gives the most consistent judgments, 2 is faster.">
@@ -83,19 +83,18 @@ export function SettingsSheet({ settings, onChange, onClose, engine }: { setting
           <Row title="Adaptive depth" desc="Search book moves, forced replies and decided positions less deeply.">
             <Switch label="Adaptive depth" checked={settings.adaptive} onChange={(v) => set('adaptive', v)} />
           </Row>
-          {threadsOk ? (
-            <Slider
-              title="Threads"
-              value={settings.threads || defaultThreads()}
-              min={1}
-              max={Math.max(2, navigator.hardwareConcurrency || 2)}
-              step={1}
-              format={(v) => `${v}${settings.threads ? '' : ' (auto)'}`}
-              onChange={(v) => set('threads', v)}
-            />
-          ) : (
-            <p className="note">Multi-threading is unavailable here (the page isn’t cross-origin isolated), so the single-threaded engine is used.</p>
-          )}
+          <Row title="One multi-threaded engine" desc={threadsOk ? 'Instead of several single-threaded engines working on different moves. Usually slower at fixed depth.' : 'Needs cross-origin isolation, which this page doesn’t have.'}>
+            <Switch label="One multi-threaded engine" checked={settings.engineMode === 'threads' && threadsOk} onChange={(v) => set('engineMode', v && threadsOk ? 'threads' : 'pool')} />
+          </Row>
+          <Slider
+            title={settings.engineMode === 'threads' && threadsOk ? 'Threads' : 'Parallel engines'}
+            value={settings.threads || defaultThreads()}
+            min={1}
+            max={Math.max(2, Math.min(8, navigator.hardwareConcurrency || 2))}
+            step={1}
+            format={(v) => `${v}${settings.threads ? '' : ' (auto)'}`}
+            onChange={(v) => set('threads', v)}
+          />
           {engine && <p className="note">Engine: {engine.name}</p>}
         </section>
         <hr className="dotted" />

@@ -4,8 +4,8 @@ import { readdirSync, statSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 /**
- * Cross-origin isolation (COOP + COEP) unlocks SharedArrayBuffer, which the multi-threaded
- * Stockfish build needs. Production hosts must send the same two headers (see README).
+ * Cross-origin isolation (COOP + COEP) unlocks SharedArrayBuffer, which the optional
+ * multi-threaded Stockfish build needs. The default engine pool works without it.
  */
 const isolation = {
   'Cross-Origin-Opener-Policy': 'same-origin',
@@ -28,7 +28,9 @@ function serviceWorker(): Plugin {
         }
       };
       walk(dist);
-      const list = files.filter((f) => f !== 'sw.js' && !f.endsWith('.map') && !f.endsWith('COPYING.txt'));
+      // The multi-threaded engine build is opt-in (Settings); it is cached on first use instead.
+      const optional = /engine\/stockfish-18-lite\.(js|wasm)$/;
+      const list = files.filter((f) => f !== 'sw.js' && !f.endsWith('.map') && !f.endsWith('COPYING.txt') && !optional.test(f));
       const version = Date.now().toString(36);
       const tpl = readFileSync('src/sw.template.js', 'utf8');
       writeFileSync(join(dist, 'sw.js'), tpl.replace('__VERSION__', version).replace('__FILES__', JSON.stringify(['./', ...list])));

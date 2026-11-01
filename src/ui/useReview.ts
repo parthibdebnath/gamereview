@@ -8,9 +8,9 @@ import { buildReview, createMemo, type GameReview } from '../core/review';
 import { loadOpeningBook, type OpeningBook } from '../core/openings';
 import { loadRatingModel, type RatingModel } from '../core/rating';
 import { hashKey } from '../core/hash';
-import { analyzeGame, type Progress } from '../engine/analyzer';
+import { analyzeGamePool, type Progress } from '../engine/analyzer';
 import type { EngineInfo } from '../engine/types';
-import { getEngine, setReviewing } from '../engine/service';
+import { getEngines, setReviewing } from '../engine/service';
 import { loadAnalysis, saveAnalysis, saveHistory } from '../engine/cache';
 import { analysisSettings, classifyConfig, type Settings } from './settings';
 
@@ -64,7 +64,7 @@ export function useReview(settings: Settings): Session {
       setStatus('loading-engine');
       try {
         const bk = book ?? (await loadOpeningBook());
-        const { engine: e, info } = await getEngine(settings.threads);
+        const { engines, info } = await getEngines(settings.threads, settings.engineMode);
         if (id !== runId.current) return;
         setEngine(info);
         const key = cacheKey(g, settings, info.id);
@@ -73,10 +73,10 @@ export function useReview(settings: Settings): Session {
         setAnalyses([...current]);
         setStatus('analyzing');
         setReviewing(true);
-        await e.newGame();
+        await Promise.all(engines.map((x) => x.newGame()));
         let lastSave = Date.now();
         let lastPaint = 0;
-        await analyzeGame(e, g, {
+        await analyzeGamePool(engines, g, {
           settings: analysisSettings(settings),
           known: current,
           isBook: (i) => i > 0 && bk.has(i === 0 ? g.startFen : g.plies[i - 1].fenAfter),
@@ -125,7 +125,7 @@ export function useReview(settings: Settings): Session {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [book, settings.threads, settings.preset, settings.depth, settings.multipv, settings.adaptive],
+    [book, settings.threads, settings.engineMode, settings.preset, settings.depth, settings.multipv, settings.adaptive],
   );
 
   const start = useCallback(

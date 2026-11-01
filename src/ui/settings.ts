@@ -9,8 +9,10 @@ export interface Settings {
   depth?: number;
   multipv: number;
   adaptive: boolean;
-  /** 0 = automatic. */
+  /** Parallel engines (pool mode) or threads (threads mode); 0 = automatic. */
   threads: number;
+  /** 'pool': several single-threaded engines (default); 'threads': one multi-threaded engine. */
+  engineMode: 'pool' | 'threads';
   brilliant: Sensitivity;
   great: Sensitivity;
   thresholds: { excellent: number; good: number; inaccuracy: number; mistake: number };
@@ -38,9 +40,10 @@ export function isMobile(): boolean {
 
 export const DEFAULT_SETTINGS: Settings = {
   preset: isMobile() ? 'fast' : 'standard',
-  multipv: 3,
+  multipv: isMobile() ? 2 : 3,
   adaptive: true,
   threads: 0,
+  engineMode: 'pool',
   brilliant: 'normal',
   great: 'normal',
   thresholds: {

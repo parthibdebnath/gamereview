@@ -46,8 +46,10 @@ export interface AccuracyResult {
  *     which is what makes "one blunder" games score visibly lower.
  *
  * `winWhite` must have length plies + 1. `firstSide` is the side that made the first ply.
+ * `moveLossOverride[i]` (win% points, mover's view) can supply a same-search loss for ply i;
+ * the move then scores the better of the two measurements.
  */
-export function gameAccuracy(winWhite: number[], firstSide: 'w' | 'b' = 'w'): AccuracyResult {
+export function gameAccuracy(winWhite: number[], firstSide: 'w' | 'b' = 'w', moveLossOverride?: (number | undefined)[]): AccuracyResult {
   const n = winWhite.length - 1;
   const perMove: number[] = [];
   if (n <= 0) return { white: null, black: null, perMove };
@@ -64,7 +66,10 @@ export function gameAccuracy(winWhite: number[], firstSide: 'w' | 'b' = 'w'): Ac
     const side: 'w' | 'b' = (i % 2 === 0) === (firstSide === 'w') ? 'w' : 'b';
     const prev = winWhite[i];
     const next = winWhite[i + 1];
-    const a = side === 'w' ? moveAccuracy(prev, next) : moveAccuracy(100 - prev, 100 - next);
+    let a = side === 'w' ? moveAccuracy(prev, next) : moveAccuracy(100 - prev, 100 - next);
+    // A smaller loss measured inside one engine search (see DECISIONS.md D-ACC-2).
+    const o = moveLossOverride?.[i];
+    if (o !== undefined) a = Math.max(a, moveAccuracy(100, 100 - o));
     perMove.push(a);
     acc[side].push({ a, w: weights[i] ?? weights[weights.length - 1] ?? 1 });
   }

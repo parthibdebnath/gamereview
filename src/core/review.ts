@@ -67,6 +67,15 @@ export interface ReviewOptions {
    * explanation depend only on its own inputs, which are captured in the memo key.
    */
   memo?: ReviewMemo;
+  /**
+   * Per-move accuracy loss (DECISIONS.md D-ACC-2):
+   *  - 'top' (default): when the played move is the engine's top line, it is charged the smaller
+   *    of its same-search loss (0) and the position-to-position loss, so a best move is never
+   *    penalised for horizon noise between two searches. Everything else as Lichess.
+   *  - 'sequential': Lichess's plain position-to-position method.
+   *  - 'hybrid': like 'top' for any move found among the engine lines.
+   */
+  accuracyMode?: 'hybrid' | 'sequential' | 'top';
 }
 
 type MoveCore = Pick<MoveReview, 'verdict' | 'bestSan' | 'bestLine' | 'replyLine' | 'explanation'>;
@@ -141,7 +150,17 @@ export function buildReview(game: ParsedGame, analyses: (PositionAnalysis | unde
   while (analysedPrefix < fens.length && analyses[analysedPrefix]) analysedPrefix++;
   const winsForAcc = fens.slice(0, analysedPrefix).map((f, i) => accuracyWin(f, analyses[i]!));
   const firstSide = game.plies[0]?.side ?? 'w';
-  const acc = gameAccuracy(winsForAcc, firstSide);
+  const mode = opts.accuracyMode ?? 'top';
+  const override = mode !== 'sequential'
+    ? game.plies.map((p, i) => {
+        const a = analyses[i];
+        if (!a || i + 1 >= analysedPrefix) return undefined;
+        const played = mode === 'top' ? (a.lines[0]?.pv[0] === p.uci ? a.lines[0] : undefined) : a.lines.find((l) => l.pv[0] === p.uci);
+        if (!played || !a.lines[0]) return undefined;
+        return Math.max(0, winPct(a.lines[0].score, 'ceiling') - winPct(played.score, 'ceiling'));
+      })
+    : undefined;
+  const acc = gameAccuracy(winsForAcc, firstSide, override);
 
   const cfgKey = JSON.stringify(cfg);
   const moves: (MoveReview | undefined)[] = [];

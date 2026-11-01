@@ -51,6 +51,8 @@ async function main() {
   const games = selectGames(text, nGames);
   mkdirSync('tools/.cache', { recursive: true });
   let accErr: number[] = [];
+  const accErrSeq: number[] = [];
+  const accErrTop: number[] = [];
   const conf = Array.from({ length: 4 }, () => [0, 0, 0, 0]); // conf[lichess][ours]
   const confL = Array.from({ length: 4 }, () => [0, 0, 0, 0]); // ours with Lichess thresholds
   const rows: string[] = [];
@@ -64,6 +66,8 @@ async function main() {
     const dt = Date.now() - t0;
     totalTime += dt;
     const review = buildReview(game, analyses, { book, ratingModel });
+    const seqReview = buildReview(game, analyses, { book, accuracyMode: 'sequential' });
+    const topReview = buildReview(game, analyses, { book, accuracyMode: 'top' });
 
     // Lichess accuracy from Lichess evals (start position = +15 cp, as in lila).
     const evals = lichessEvals(pgn);
@@ -76,6 +80,10 @@ async function main() {
       const ours = side === 'w' ? review.white.accuracy : review.black.accuracy;
       const theirs = side === 'w' ? lacc.white : lacc.black;
       if (ours !== null && theirs !== null) accErr.push(ours - theirs);
+      const seq = side === 'w' ? seqReview.white.accuracy : seqReview.black.accuracy;
+      if (seq !== null && theirs !== null) accErrSeq.push(seq - theirs);
+      const top = side === 'w' ? topReview.white.accuracy : topReview.black.accuracy;
+      if (top !== null && theirs !== null) accErrTop.push(top - theirs);
       const p = side === 'w' ? review.white : review.black;
       if (p.rating && p.elo) ratingErr.push(p.rating.value - p.elo);
     }
@@ -126,6 +134,8 @@ async function main() {
     ...rows,
     '',
     `accuracy vs Lichess: MAE ${mae(accErr).toFixed(2)}  bias ${bias(accErr).toFixed(2)}  (n=${accErr.length})`,
+    `  sequential-only accuracy: MAE ${mae(accErrSeq).toFixed(2)}  bias ${bias(accErrSeq).toFixed(2)}`,
+    `  top-move-only override:   MAE ${mae(accErrTop).toFixed(2)}  bias ${bias(accErrTop).toFixed(2)}`,
     `rating estimate vs actual Elo: MAE ${mae(ratingErr).toFixed(0)}  bias ${bias(ratingErr).toFixed(0)}  (n=${ratingErr.length})`,
     `time: ${(totalTime / 1000).toFixed(0)}s total, ${(totalTime / games.length / 1000).toFixed(1)}s per game (cached games count as 0)`,
     '',

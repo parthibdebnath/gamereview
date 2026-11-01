@@ -18,7 +18,7 @@ export interface AnalysisSettings {
 }
 
 export const PRESETS: Record<PresetName, AnalysisSettings> = {
-  fast: { depth: 12, multipv: 3, adaptive: true },
+  fast: { depth: 12, multipv: 2, adaptive: true },
   standard: { depth: 16, multipv: 3, adaptive: true },
   deep: { depth: 20, multipv: 3, adaptive: true },
 };
@@ -66,6 +66,58 @@ export function depthFor(index: number, game: ParsedGame, settings: AnalysisSett
   const prevTop = prev?.lines[0];
   if (prevTop && Math.abs(scoreToCp(prevTop.score)) >= 600) d -= 3;
   return Math.max(8, d);
+}
+
+/**
+ * Analyse a game with several engines at once (one position per engine, positions handed out
+ * in order). Each engine is single-threaded; on multi-core machines this scales far better
+ * than one multi-threaded engine at fixed depth (DECISIONS.md D-ENG-7). Results stream in
+ * roughly in order; `onPosition` may fire out of order.
+ */
+export async function analyzeGamePool(engines: EngineAdapter[], game: ParsedGame, opts: AnalyzeGameOptions): Promise<PositionAnalysis[]> {
+  if (engines.length <= 1) return analyzeGame(engines[0], game, opts);
+  const fens = gamePositions(game);
+  const uci = game.plies.map((p) => p.uci);
+  const out: PositionAnalysis[] = [];
+  const started = Date.now();
+  const todo = fens.map((_, i) => !opts.known?.[i]).filter(Boolean).length;
+  let doneNew = 0;
+  let done = 0;
+  let next = 0;
+  const report = (i: number, a: PositionAnalysis) => {
+    out[i] = a;
+    done++;
+    const elapsed = Date.now() - started;
+    const remaining = todo - doneNew;
+    // Wall-clock rate already reflects the parallelism.
+    const eta = doneNew ? Math.round((elapsed / doneNew) * remaining) : 0;
+    opts.onPosition?.(i, a, { done, total: fens.length, etaMs: eta, elapsedMs: elapsed });
+  };
+  // Known positions first (instant).
+  fens.forEach((_, i) => opts.known?.[i] && report(i, opts.known[i]!));
+  const worker = async (engine: EngineAdapter) => {
+    for (;;) {
+      if (opts.signal?.aborted) throw new DOMException('Analysis cancelled', 'AbortError');
+      while (next < fens.length && opts.known?.[next]) next++;
+      if (next >= fens.length) return;
+      const i = next++;
+      const moves = uci.slice(0, i);
+      const terminal = terminalState(game.startFen, moves);
+      let analysis: PositionAnalysis;
+      if (terminal) analysis = { depth: 0, lines: [], terminal };
+      else {
+        // The previous position may still be in flight; use the nearest finished one before it.
+        const prev = out[i - 1] ?? out[i - 2];
+        const depth = depthFor(i, game, opts.settings, prev, opts.isBook?.(i) ?? false);
+        analysis = await engine.analyze(game.startFen, { depth, multipv: opts.settings.multipv, moves, signal: opts.signal });
+        if (opts.signal?.aborted) throw new DOMException('Analysis cancelled', 'AbortError');
+      }
+      doneNew++;
+      report(i, analysis);
+    }
+  };
+  await Promise.all(engines.map(worker));
+  return out;
 }
 
 /**
