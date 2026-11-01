@@ -4,3 +4,4 @@ public/engine
 *.log
 .data
 tools/.cache
+.vercel

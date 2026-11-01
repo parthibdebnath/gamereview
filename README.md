@@ -68,7 +68,7 @@ Cross-Origin-Embedder-Policy: require-corp
 ```
 
 - **Netlify / Cloudflare Pages**: already handled by `public/_headers` (copied into `dist/`).
-- **Vercel** (`vercel.json`): `{"headers":[{"source":"/(.*)","headers":[{"key":"Cross-Origin-Opener-Policy","value":"same-origin"},{"key":"Cross-Origin-Embedder-Policy","value":"require-corp"}]}]}`
+- **Vercel**: already configured in `vercel.json` (build command, output folder, headers, caching). Deploy with `vercel deploy --prod`.
 - **nginx**: `add_header Cross-Origin-Opener-Policy same-origin; add_header Cross-Origin-Embedder-Policy require-corp;`
 - **Hosts without header control (e.g. GitHub Pages)**: the service worker re-serves cached
   files with both headers, so the page becomes isolated from the second load on.
