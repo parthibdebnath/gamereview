@@ -23,9 +23,9 @@ export interface AnalysisSettings {
 }
 
 export const PRESETS: Record<PresetName, AnalysisSettings> = {
-  fast: { depth: 12, multipv: 2, adaptive: true },
-  standard: { depth: 16, multipv: 3, adaptive: true },
-  deep: { depth: 20, multipv: 3, adaptive: true },
+  fast: { depth: 12, multipv: 2, adaptive: true, verify: 0 },
+  standard: { depth: 16, multipv: 3, adaptive: true, verify: 4 },
+  deep: { depth: 20, multipv: 3, adaptive: true, verify: 4 },
 };
 
 export interface Progress {
