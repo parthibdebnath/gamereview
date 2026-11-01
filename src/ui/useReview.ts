@@ -12,7 +12,7 @@ import { analyzeGamePool, reanalyzePositions, type Progress } from '../engine/an
 import type { EngineInfo } from '../engine/types';
 import { getEngines, setReviewing } from '../engine/service';
 import { loadAnalysis, saveAnalysis, saveHistory } from '../engine/cache';
-import { analysisSettings, classifyConfig, type Settings } from './settings';
+import { analysisSettings, classifyConfig, effectiveNet, type Settings } from './settings';
 
 export type Status = 'idle' | 'loading-engine' | 'analyzing' | 'done' | 'cancelled' | 'error';
 
@@ -64,7 +64,7 @@ export function useReview(settings: Settings): Session {
       setStatus('loading-engine');
       try {
         const bk = book ?? (await loadOpeningBook());
-        const { engines, info } = await getEngines(settings.threads, settings.engineMode, settings.engineNet);
+        const { engines, info } = await getEngines(settings.threads, settings.engineMode, effectiveNet(settings));
         if (id !== runId.current) return;
         setEngine(info);
         const key = cacheKey(g, settings, info.id);

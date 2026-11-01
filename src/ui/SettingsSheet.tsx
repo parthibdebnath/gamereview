@@ -88,7 +88,7 @@ export function SettingsSheet({ settings, onChange, onClose, engine }: { setting
           />
           <p className="note">
             The full net evaluates positions more accurately; it is a one-time 76 MB download (kept for offline use) and needs ~250 MB of memory per engine. Lite is 7 MB
-            and quicker.
+            and quicker; the Fast preset always uses it.
           </p>
           <Slider title="Search depth" value={depth} min={8} max={24} step={1} format={(v) => `${v}`} onChange={(v) => set('depth', v)} />
           <Slider

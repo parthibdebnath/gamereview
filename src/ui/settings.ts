@@ -99,6 +99,11 @@ export function analysisSettings(s: Settings): AnalysisSettings {
   return { depth: s.depth ?? p.depth, multipv: s.multipv, adaptive: s.adaptive, verify: s.verify ?? p.verify ?? 0 };
 }
 
+/** Net actually used: Fast is about speed, so it always uses the lite net. */
+export function effectiveNet(s: Settings): 'lite' | 'full' {
+  return s.preset === 'fast' ? 'lite' : s.engineNet;
+}
+
 export function classifyConfig(s: Settings): ClassifyConfig {
   return withSensitivity({ ...DEFAULT_CONFIG, ...s.thresholds }, s.brilliant, s.great);
 }

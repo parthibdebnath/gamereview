@@ -13,7 +13,7 @@ import { Icon, Logo } from './icons';
 import { MARKS, squareMarkSvg } from './marks';
 import { Commentary, EvalBar, EvalGraph, KeyMoments, MoveList, Summary, Tabs, formatSanLine } from './parts';
 import { SettingsSheet } from './SettingsSheet';
-import { applyTheme, contentFor, loadSettings, normalizeHex, saveSettings, type Settings } from './settings';
+import { applyTheme, contentFor, effectiveNet, loadSettings, normalizeHex, saveSettings, type Settings } from './settings';
 import { useReview } from './useReview';
 import { polish } from './llm';
 
@@ -97,7 +97,7 @@ export function App() {
     if (!needLive || !displayFen) return;
     let cancelled = false;
     const depth = settings.preset === 'fast' ? 14 : settings.preset === 'deep' ? 22 : 18;
-    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, mode: settings.engineMode, net: settings.engineNet, depth, multipv: 1 })
+    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, mode: settings.engineMode, net: effectiveNet(settings), depth, multipv: 1 })
       .then((a) => !cancelled && a && setLive({ fen: displayFen, a }))
       .catch(() => undefined);
     return () => {

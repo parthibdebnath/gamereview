@@ -29,7 +29,7 @@ third-party branding, icons, colours or wording.
 (we draw classification badges with it), accessibility of focus and keyboard left to us. The
 app is GPLv3 anyway because of Stockfish, so the license adds no new obligation.
 
-### D-ENG-1 — Stockfish 18 "lite" NNUE build (7 MB) instead of the full net (113 MB)
+### D-ENG-1 — (superseded by D-ENG-8) Lite NNUE build as the only engine
 **Brief:** official NNUE build.
 **Did:** ship `stockfish-18-lite` (multi-threaded) and `stockfish-18-lite-single` only.
 **Evidence:** Node benchmark, MultiPV 3, depth 16, 4 positions: lite-single 2.7 s total vs
@@ -51,6 +51,51 @@ At fixed depth, Lazy-SMP helper threads add overhead without reaching the depth 
 independent positions parallelise almost perfectly. Bonus: no COOP/COEP headers needed, so it
 works at full speed on any static host. Cost: ~25 MB memory per extra engine and less
 transposition-table reuse between neighbouring positions (absorbed by D-ACC-2).
+
+### D-ENG-8 — Full NNUE net by default on desktop, shipped as gzip parts
+**Context:** the owner asked to favour engine strength and review accuracy over speed.
+**Did:** the full Stockfish 18 build (113 MB, full NNUE net) is now the default on desktop
+(Settings → Engine strength; Lite stays the default on phones and for Fast). It exceeds the
+100 MB per-file limit of static hosts, so `scripts/copy-engine.mjs` gzips it (75 MB) and splits
+it into 24 MB parts; `src/engine/fullNet.ts` downloads them once (progress shown), decompresses
+with `DecompressionStream` and gives every engine worker the same Blob URL. The service worker
+caches the parts on first use (not precached, so Lite/mobile users never download them).
+Automatic engine count with the full net: 3 (4 on 8+ cores, 6 on 12+) for memory (~250 MB each).
+**Evidence (15 validation games, 30 player-games, vs Lichess server analysis):**
+
+| Setup | Accuracy MAE | Recall | Precision | Same severity | Node s/game* |
+| --- | --- | --- | --- | --- | --- |
+| Lite, depth 16 (old default) | 2.12 | 77 % | 84 % | 45 % | ~45 |
+| Lite, depth 20 | 1.61 | 83 % | 89 % | 49 % | 221 |
+| Lite, depth 16 + verify +4 | 1.57 | 79 % | 90 % | 53 % | 229† |
+| Full, depth 16 | 1.50 | 83 % | 81 % | 52 % | 85 |
+| **Full, depth 16 + verify +4 (new Standard)** | **0.95** | **85 %** | **89 %** | **56 %** | 285† |
+
+\* one engine, 3–4 runs sharing 4 vCPUs, so only roughly comparable. † verify pass only (first
+pass cached). The full net gives more accuracy per unit of compute than going deeper with Lite.
+Browser: an 81-position club game took 190 s with 3 full-net engines on the 4-vCPU test machine
+(vs 23 s for the old Lite/depth-16 default) — accepted per the owner's priorities; Fast remains.
+A full-net depth-20 run was started but would have taken many hours here; Deep uses it
+(depth 20 + verify) without a measured number.
+
+### D-ENG-9 — Verification pass over critical and borderline moves
+**Brief:** "deeper search on critical positions or where classification is borderline".
+**Did:** after the first pass, `criticalPositions()` (src/core/review.ts) picks both positions
+around every Blunder/Miss/Brilliant (priority 5), Mistake/Great (4), Inaccuracy (3), moves within
+2.5 % of a class threshold (2) and close engine calls (1), capped at 60 % of the game, and
+`reanalyzePositions()` re-searches them 4 plies deeper with the engine pool. On by default for
+Standard and Deep; adjustable 0–8 plies in Settings.
+**Evidence:** table above — with Lite it lifts same-severity agreement 45 → 53 % and precision
+84 → 90 %; with the full net, accuracy MAE 1.50 → 0.95 and precision 81 → 89 %.
+
+### D-UI-4 — Find games by username, opt-in
+The brief made online import optional and off by default; username lookup follows the same
+rule. The home screen shows a "Turn on online lookup" button (explicit consent, one click)
+instead of hiding the feature in Settings. Lichess's documented public endpoint returned 404
+from the cloud test environment (Lichess blocks some datacenter networks); the parsing is
+covered by tests with recorded responses, Chess.com was verified live, and a 404 is
+disambiguated by checking the player's profile so users aren't told a real account doesn't
+exist.
 
 ### D-ENG-2 — Engine sees the move history
 Positions are sent as `position fen <start> moves …` so Stockfish knows about repetitions;

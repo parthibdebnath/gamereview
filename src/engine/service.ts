@@ -34,8 +34,13 @@ export function setEngineFactory(f: (threads: number, net: EngineNet) => EngineA
 /** Number of engines (pool mode) or threads (threads mode) for a setting of 0 = auto. */
 export function resolveWorkers(setting: number, net: EngineNet = 'lite'): number {
   if (setting > 0) return setting;
-  // Full-net engines need ~250 MB each; cap the automatic count.
-  return net === 'full' ? Math.min(defaultThreads(), 3) : defaultThreads();
+  // Full-net engines need ~250 MB each: cap the automatic count by machine size.
+  if (net === 'full') {
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2;
+    const cap = cores >= 12 ? 6 : cores >= 8 ? 4 : 3;
+    return Math.max(1, Math.min(cores - 1, cap));
+  }
+  return defaultThreads();
 }
 
 export async function getEngines(setting = 0, mode: EngineMode = 'pool', net: EngineNet = 'lite'): Promise<{ engines: EngineAdapter[]; info: EngineInfo }> {

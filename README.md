@@ -5,9 +5,10 @@ Paste a PGN and get a full game review: an evaluation bar, a classification for 
 estimated game rating, plain-language explanations, best-move and threat arrows, an
 evaluation graph and key moments.
 
-**Everything runs on your device.** Stockfish 18 (WebAssembly) analyses the game in Web
-Workers — several engines in parallel, one position each; there is no server and no network
-call in the review path. A typical 40-move game reviews in ~20 s on a 4-core laptop (Standard). After the first visit the
+**Everything runs on your device.** Stockfish 18 (WebAssembly, full NNUE net on desktop)
+analyses the game in Web Workers — several engines in parallel, one position each — then
+double-checks critical moves with a deeper search. There is no server and no network call in
+the review path. After the first visit the
 app works fully offline (PWA).
 
 <p>
@@ -106,16 +107,23 @@ PGN ──► positions ──► engine analysis (cached) ──► classify / 
 
 ### Engine presets
 
-| Preset | Depth | Notes |
-| --- | --- | --- |
-| Fast | 12 | MultiPV 2; auto-selected on phones/tablets |
-| Standard | 16 | MultiPV 3; default. A 40-move game: ~20 s with 3–4 engines, ~60 s with one |
-| Deep | 20 | MultiPV 3; slowest, closest to server-side analysis |
+| Preset | Engine | Depth | Verify | Notes |
+| --- | --- | --- | --- | --- |
+| Fast | Lite net | 12 | off | MultiPV 2; auto-selected on phones/tablets |
+| Standard | Full net (desktop) | 16 | +4 | MultiPV 3; default. Closest to Lichess's own analysis (accuracy within ~1 point) |
+| Deep | Full net (desktop) | 20 | +4 | MultiPV 3; slowest |
 
-MultiPV is also selectable (2 or 3) in Settings. Engines: min(cores − 1, 4) parallel
-single-threaded engines (adjustable). **Adaptive depth** searches book moves (≤12),
-single-reply positions (≤10) and already-decided positions (−3 plies when |eval| ≥ 6 pawns)
-less deeply.
+**Engine strength.** On desktop the full-NNUE Stockfish build is used: a one-time 75 MB
+download (shipped as gzip parts, cached for offline use, ~250 MB memory per engine). Phones and
+the Fast preset use the 7 MB lite net. Switch in Settings → Engine strength.
+**Verification pass.** After the first pass, critical and borderline moves (mistakes,
+blunders, misses, brilliant/great candidates, moves near a class threshold) are searched again
+4 plies deeper (Settings → Double-check critical moves).
+**Parallel engines.** Several single-threaded engines analyse different positions at once
+(lite: min(cores − 1, 4); full: 3, or 4/6 on 8/12+ cores). **Adaptive depth** searches book
+moves (≤12), single-reply positions (≤10) and already-decided positions (−3 plies when |eval| ≥
+6 pawns) less deeply. Standard on the full net takes roughly 1–3 minutes for a 40-move game
+depending on the machine; Fast takes seconds.
 
 Analysis is cached per game + engine settings in IndexedDB (partial results too, so an
 interrupted review resumes). Review history is kept locally.
@@ -166,9 +174,10 @@ an estimate. Ratings are on the **Lichess scale**.
 
 `tools/validate.ts` picks rated Lichess games across rating bands and compares our review
 with Lichess's own server analysis of the same games (its evals and its ?!/?/?? judgments).
-Results are summarised in `DECISIONS.md`. Headline (Standard preset, lite NNUE, 30 games,
-60 player-games): accuracy within ~2.4 points (MAE) of Lichess's method on Lichess's evals;
-82% of the moves Lichess flags are flagged by us and 86% of our flags are confirmed by Lichess.
+Results are summarised in `DECISIONS.md`. Headline (Standard preset — full net, depth 16 +
+verification — 15 games, 30 player-games): accuracy within **0.95 points** (MAE) of Lichess's
+method on Lichess's evals; 85% of the moves Lichess flags are flagged by us and 89% of our flags
+are confirmed by Lichess; 56% get exactly the same severity.
 Fast (depth 12) needed ~7 s per game with a single engine on the 4-vCPU test machine, with recall/precision
 75/77%. Chess.com's exact
 formulas are proprietary, so we can't validate against them directly.
