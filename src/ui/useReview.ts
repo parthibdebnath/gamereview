@@ -4,11 +4,11 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ParsedGame, PositionAnalysis } from '../core/types';
-import { buildReview, createMemo, type GameReview } from '../core/review';
+import { buildReview, createMemo, criticalPositions, type GameReview } from '../core/review';
 import { loadOpeningBook, type OpeningBook } from '../core/openings';
 import { loadRatingModel, type RatingModel } from '../core/rating';
 import { hashKey } from '../core/hash';
-import { analyzeGamePool, type Progress } from '../engine/analyzer';
+import { analyzeGamePool, reanalyzePositions, type Progress } from '../engine/analyzer';
 import type { EngineInfo } from '../engine/types';
 import { getEngines, setReviewing } from '../engine/service';
 import { loadAnalysis, saveAnalysis, saveHistory } from '../engine/cache';
@@ -33,7 +33,7 @@ export interface Session {
 
 function cacheKey(game: ParsedGame, s: Settings, engineId: string): string {
   const a = analysisSettings(s);
-  return hashKey([game.startFen, game.plies.map((p) => p.uci).join(' '), engineId, a.depth, a.multipv, a.adaptive].join('|'));
+  return hashKey([game.startFen, game.plies.map((p) => p.uci).join(' '), engineId, a.depth, a.multipv, a.adaptive, ...(a.verify ? ['v' + a.verify] : [])].join('|'));
 }
 
 export function useReview(settings: Settings): Session {
@@ -64,7 +64,7 @@ export function useReview(settings: Settings): Session {
       setStatus('loading-engine');
       try {
         const bk = book ?? (await loadOpeningBook());
-        const { engines, info } = await getEngines(settings.threads, settings.engineMode);
+        const { engines, info } = await getEngines(settings.threads, settings.engineMode, settings.engineNet);
         if (id !== runId.current) return;
         setEngine(info);
         const key = cacheKey(g, settings, info.id);
@@ -98,6 +98,30 @@ export function useReview(settings: Settings): Session {
           },
         });
         if (id !== runId.current) return;
+        // Verification pass: re-search critical and borderline moves more deeply.
+        const a = analysisSettings(settings);
+        if (a.verify && g.plies.length) {
+          setAnalyses([...current]);
+          const first = buildReview(g, current, { book: bk, config: classifyConfig(settings) });
+          const critical = criticalPositions(first, classifyConfig(settings));
+          const t0 = Date.now();
+          const verified = await reanalyzePositions(engines, g, current as PositionAnalysis[], critical, a.depth + a.verify, a.multipv, {
+            signal: abort.signal,
+            onPosition: (i, an, done, total) => {
+              if (id !== runId.current) return;
+              current[i] = an;
+              const elapsed = Date.now() - t0;
+              setAnalyses([...current]);
+              setProgress({ done, total, etaMs: done ? Math.round((elapsed / done) * (total - done)) : 0, elapsedMs: elapsed, phase: 'verify' });
+              if (Date.now() - lastSave > 3000) {
+                lastSave = Date.now();
+                void saveAnalysis(key, current);
+              }
+            },
+          });
+          verified.forEach((x, i) => (current[i] = x));
+        }
+        if (id !== runId.current) return;
         await saveAnalysis(key, current);
         setAnalyses([...current]);
         setStatus('done');
@@ -125,7 +149,7 @@ export function useReview(settings: Settings): Session {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [book, settings.threads, settings.engineMode, settings.preset, settings.depth, settings.multipv, settings.adaptive],
+    [book, settings.threads, settings.engineMode, settings.engineNet, settings.preset, settings.depth, settings.multipv, settings.adaptive],
   );
 
   const start = useCallback(

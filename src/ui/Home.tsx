@@ -3,6 +3,7 @@ import { gameFromFen, looksLikeFen, parsePgn, splitPgn, PgnError } from '../core
 import type { ParsedGame } from '../core/types';
 import { deleteHistory, listHistory, type HistoryEntry } from '../engine/cache';
 import { Icon } from './icons';
+import { FindGames } from './FindGames';
 import opera from '../../tests/fixtures/games/opera.pgn?raw';
 import evergreen from '../../tests/fixtures/games/evergreen.pgn?raw';
 import century from '../../tests/fixtures/games/century.pgn?raw';
@@ -15,7 +16,7 @@ const SAMPLES = [
   { name: 'Game of the Century, 1956', pgn: century },
 ];
 
-export function Home({ onGame, onlineImport }: { onGame: (g: ParsedGame, source: string) => void; onlineImport: boolean }) {
+export function Home({ onGame, onlineImport, onEnableOnline }: { onGame: (g: ParsedGame, source: string) => void; onlineImport: boolean; onEnableOnline: () => void }) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string>();
   const [choices, setChoices] = useState<{ label: string; pgn: string }[]>();
@@ -169,10 +170,18 @@ export function Home({ onGame, onlineImport }: { onGame: (g: ParsedGame, source:
           </div>
         </div>
       )}
+      <FindGames
+        enabled={onlineImport}
+        onEnable={onEnableOnline}
+        onPick={(pgn) => {
+          setText(pgn);
+          submit(pgn);
+        }}
+      />
       {onlineImport && (
         <div className="surface card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label className="label" htmlFor="url">
-            Import from a Lichess link (uses the network)
+            Or import one Lichess game by link
           </label>
           <div className="row-btns">
             <input id="url" className="field" style={{ flex: 1, minWidth: 200 }} placeholder="https://lichess.org/abcdefgh" value={url} onChange={(e) => setUrl(e.target.value)} />

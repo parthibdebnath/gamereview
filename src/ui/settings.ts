@@ -9,10 +9,14 @@ export interface Settings {
   depth?: number;
   multipv: number;
   adaptive: boolean;
+  /** Extra depth for the verification pass over critical moves (0 = off); preset default if unset. */
+  verify?: number;
   /** Parallel engines (pool mode) or threads (threads mode); 0 = automatic. */
   threads: number;
   /** 'pool': several single-threaded engines (default); 'threads': one multi-threaded engine. */
   engineMode: 'pool' | 'threads';
+  /** 'full': full NNUE net (strongest, 76 MB one-time download); 'lite': small net. */
+  engineNet: 'lite' | 'full';
   brilliant: Sensitivity;
   great: Sensitivity;
   thresholds: { excellent: number; good: number; inaccuracy: number; mistake: number };
@@ -44,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   adaptive: true,
   threads: 0,
   engineMode: 'pool',
+  engineNet: isMobile() ? 'lite' : 'full',
   brilliant: 'normal',
   great: 'normal',
   thresholds: {
@@ -91,7 +96,7 @@ export function saveSettings(s: Settings): void {
 
 export function analysisSettings(s: Settings): AnalysisSettings {
   const p = PRESETS[s.preset];
-  return { depth: s.depth ?? p.depth, multipv: s.multipv, adaptive: s.adaptive };
+  return { depth: s.depth ?? p.depth, multipv: s.multipv, adaptive: s.adaptive, verify: s.verify ?? p.verify ?? 0 };
 }
 
 export function classifyConfig(s: Settings): ClassifyConfig {

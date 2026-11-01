@@ -214,9 +214,14 @@ binary keeps the app under GPLv3 — see below.)
 
 ## Optional online features (off by default)
 
-- **Import from a Lichess link** (Settings → Online extras). Uses Lichess's public export
-  endpoint; any failure shows a message and you can paste the PGN instead. Chess.com offers no
-  single-game export to other sites, so the app explains how to copy the PGN there.
+- **Find your games** (home screen; turned on with one click or in Settings → Online extras →
+  "Online game lookup"). Enter a Lichess or Chess.com username to list that player's recent
+  finished standard games (20 per page, "Older games" for more) and review one with a click.
+  Uses the public, account-free APIs: `lichess.org/api/games/user/{name}` (PGN stream) and
+  `api.chess.com/pub/player/{name}/games/archives` (monthly archives). Variants, Chess960 and
+  unfinished games are skipped. The last username is remembered on the device. Errors (unknown
+  player, rate limits, network blocks) are shown in plain language; pasting a PGN always works.
+- **Import a single Lichess game by link** (same switch).
 - **Polish wording with an LLM**: sends one move's verified facts (classification, engine
   best move/line, detected tactics, the draft sentence — not raw positions or your whole game)
   to an OpenAI-compatible endpoint you configure (e.g. a local Ollama server), only when you

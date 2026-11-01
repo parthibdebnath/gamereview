@@ -14,6 +14,7 @@ import type { EngineAdapter, EngineInfo } from './types';
 import { WorkerEngine, canUseThreads, defaultThreads } from './workerEngine';
 
 export type EngineMode = 'pool' | 'threads';
+export type EngineNet = 'lite' | 'full';
 
 let pool: EngineAdapter[] = [];
 let infos: Promise<EngineInfo[]> | undefined;
@@ -23,25 +24,29 @@ let liveToken = 0;
 let liveAbort: AbortController | undefined;
 
 /** Factory, so a native engine (e.g. Tauri sidecar) can be swapped in. See README. */
-export let createEngine = (threads: number): EngineAdapter => new WorkerEngine({ threads, hashMb: threads > 1 ? 64 : 24 });
-export function setEngineFactory(f: (threads: number) => EngineAdapter): void {
+export let createEngine: (threads: number, net: EngineNet) => EngineAdapter = (threads, net) =>
+  new WorkerEngine({ threads, net, hashMb: threads > 1 ? 64 : net === 'full' ? 32 : 24 });
+export function setEngineFactory(f: (threads: number, net: EngineNet) => EngineAdapter): void {
   createEngine = f;
   dispose();
 }
 
 /** Number of engines (pool mode) or threads (threads mode) for a setting of 0 = auto. */
-export function resolveWorkers(setting: number): number {
-  return setting > 0 ? setting : defaultThreads();
+export function resolveWorkers(setting: number, net: EngineNet = 'lite'): number {
+  if (setting > 0) return setting;
+  // Full-net engines need ~250 MB each; cap the automatic count.
+  return net === 'full' ? Math.min(defaultThreads(), 3) : defaultThreads();
 }
 
-export async function getEngines(setting = 0, mode: EngineMode = 'pool'): Promise<{ engines: EngineAdapter[]; info: EngineInfo }> {
-  const n = resolveWorkers(setting);
-  const threaded = mode === 'threads' && canUseThreads();
-  const key = `${n}|${threaded}`;
+export async function getEngines(setting = 0, mode: EngineMode = 'pool', net: EngineNet = 'lite'): Promise<{ engines: EngineAdapter[]; info: EngineInfo }> {
+  const n = resolveWorkers(setting, net);
+  // The full net only exists as a single-threaded build.
+  const threaded = mode === 'threads' && net === 'lite' && canUseThreads();
+  const key = `${n}|${threaded}|${net}`;
   if (!pool.length || key !== poolKey) {
     dispose();
     poolKey = key;
-    pool = threaded ? [createEngine(n)] : Array.from({ length: n }, () => createEngine(1));
+    pool = threaded ? [createEngine(n, net)] : Array.from({ length: n }, () => createEngine(1, net));
     infos = Promise.all(pool.map((e) => e.init())).catch((e) => {
       dispose();
       throw e;
@@ -51,13 +56,13 @@ export async function getEngines(setting = 0, mode: EngineMode = 'pool'): Promis
   const base = all[0];
   const info: EngineInfo = threaded
     ? base
-    : { ...base, name: `${base.name.replace(/ \(.*\)$/, '')} (lite NNUE, ${pool.length} parallel engine${pool.length > 1 ? 's' : ''})`, threads: pool.length };
+    : { ...base, name: `${base.name.replace(/ \(.*\)$/, '')} (${net} NNUE, ${pool.length} parallel engine${pool.length > 1 ? 's' : ''})`, threads: pool.length };
   return { engines: pool, info };
 }
 
 /** Compatibility helper: the first engine. */
-export async function getEngine(setting = 0, mode: EngineMode = 'pool'): Promise<{ engine: EngineAdapter; info: EngineInfo }> {
-  const { engines, info } = await getEngines(setting, mode);
+export async function getEngine(setting = 0, mode: EngineMode = 'pool', net: EngineNet = 'lite'): Promise<{ engine: EngineAdapter; info: EngineInfo }> {
+  const { engines, info } = await getEngines(setting, mode, net);
   return { engine: engines[0], info };
 }
 
@@ -85,13 +90,13 @@ export async function analyzeLive(
   fen: string,
   moves: string[],
   onUpdate: (a: PositionAnalysis) => void,
-  opts: { threads?: number; mode?: EngineMode; depth?: number; multipv?: number } = {},
+  opts: { threads?: number; mode?: EngineMode; net?: EngineNet; depth?: number; multipv?: number } = {},
 ): Promise<PositionAnalysis | undefined> {
   if (reviewing) return undefined;
   const token = ++liveToken;
   liveAbort?.abort();
   const abort = (liveAbort = new AbortController());
-  const { engine: e } = await getEngine(opts.threads, opts.mode);
+  const { engine: e } = await getEngine(opts.threads, opts.mode, opts.net);
   if (token !== liveToken || reviewing) return undefined;
   const result = await e.analyze(fen, {
     signal: abort.signal,

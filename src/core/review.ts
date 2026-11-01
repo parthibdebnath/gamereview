@@ -284,3 +284,34 @@ export function buildReview(game: ParsedGame, analyses: (PositionAnalysis | unde
 
   return { game, positions, moves, white, black, opening, keyMoments, complete };
 }
+
+/**
+ * Positions worth a deeper second look: both positions around every move that is critical
+ * (mistake, blunder, miss, brilliant, great) or whose loss sits near a class boundary, plus
+ * moves where the engine's top choice was a narrow call. Ordered by importance and capped at
+ * `maxShare` of the game.
+ */
+export function criticalPositions(review: GameReview, cfg: ClassifyConfig = DEFAULT_CONFIG, maxShare = 0.6): number[] {
+  const score = new Map<number, number>();
+  const bump = (i: number, s: number) => score.set(i, Math.max(score.get(i) ?? 0, s));
+  const bounds = [cfg.excellent, cfg.good, cfg.inaccuracy, cfg.mistake];
+  review.moves.forEach((m, i) => {
+    if (!m) return;
+    const c = m.verdict.classification;
+    if (c === 'book' || c === 'forced') return;
+    let s = 0;
+    if (c === 'blunder' || c === 'miss' || c === 'brilliant') s = 5;
+    else if (c === 'mistake' || c === 'great') s = 4;
+    else if (c === 'inaccuracy') s = 3;
+    const near = bounds.some((b) => Math.abs(m.verdict.loss - b) <= 0.025);
+    if (near) s = Math.max(s, 2);
+    // A close call between the top two engine moves can flip Best/Excellent/Great.
+    if (m.verdict.bestGap !== undefined && m.verdict.bestGap < 0.01 && m.verdict.playedRank !== 1) s = Math.max(s, 1);
+    if (!s) return;
+    bump(i, s);
+    bump(i + 1, s);
+  });
+  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([i]) => i);
+  const cap = Math.max(1, Math.floor(review.positions.length * maxShare));
+  return ranked.slice(0, cap).sort((a, b) => a - b);
+}

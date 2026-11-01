@@ -137,3 +137,18 @@ describe('special classes on famous games (recorded Stockfish analysis)', () => 
     expect(miss[0]!.explanation.text).toMatch(/^You missed f8=Q/);
   });
 });
+
+describe('verification pass selection', () => {
+  it('picks both positions around critical moves, never book or forced moves', async () => {
+    const { criticalPositions } = await import('../src/core/review');
+    const { game, analyses } = fixture('opera');
+    const r = buildReview(game, analyses, { book });
+    const picked = criticalPositions(r);
+    // 10.Nxb5 (ply 18, brilliant) and 10...cxb5 (ply 19, mistake): positions 18, 19, 20.
+    expect(picked).toEqual(expect.arrayContaining([18, 19, 20]));
+    // Opening book moves (plies 0-6) are not re-searched.
+    expect(picked.some((i) => i < 6)).toBe(false);
+    expect(picked.length).toBeLessThanOrEqual(Math.floor(r.positions.length * 0.6));
+    expect([...picked].sort((a, b) => a - b)).toEqual(picked);
+  });
+});

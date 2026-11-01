@@ -6,6 +6,7 @@ import type { PositionAnalysis, Score } from '../core/types';
 import { positionEval, type PositionEval } from '../core/review';
 import { uciLineToSan } from '../core/pgn';
 import { analyzeLive, stopLive } from '../engine/service';
+import { onFullNetProgress } from '../engine/fullNet';
 import { Board } from './Board';
 import { Home } from './Home';
 import { Icon, Logo } from './icons';
@@ -96,14 +97,16 @@ export function App() {
     if (!needLive || !displayFen) return;
     let cancelled = false;
     const depth = settings.preset === 'fast' ? 14 : settings.preset === 'deep' ? 22 : 18;
-    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, mode: settings.engineMode, depth, multipv: 1 })
+    analyzeLive(displayFen, [], (a) => !cancelled && setLive({ fen: displayFen, a }), { threads: settings.threads, mode: settings.engineMode, net: settings.engineNet, depth, multipv: 1 })
       .then((a) => !cancelled && a && setLive({ fen: displayFen, a }))
       .catch(() => undefined);
     return () => {
       cancelled = true;
       stopLive();
     };
-  }, [needLive, displayFen, settings.preset, settings.threads, settings.engineMode]);
+  }, [needLive, displayFen, settings.preset, settings.threads, settings.engineMode, settings.engineNet]);
+  const [netProgress, setNetProgress] = useState<{ loaded: number; total: number }>();
+  useEffect(() => onFullNetProgress(setNetProgress), []);
 
   // Auto-play of engine lines.
   useEffect(() => {
@@ -238,7 +241,7 @@ export function App() {
     return (
       <div className="app">
         <TopBar onSettings={() => setShowSettings(true)} />
-        <Home onGame={session.start} onlineImport={settings.onlineImport} />
+        <Home onGame={session.start} onlineImport={settings.onlineImport} onEnableOnline={() => setSettings({ ...settings, onlineImport: true })} />
         {showSettings && <SettingsSheet settings={settings} onChange={setSettings} onClose={() => setShowSettings(false)} engine={session.engine} />}
       </div>
     );
@@ -247,7 +250,8 @@ export function App() {
   const top = flipped ? review.white : review.black;
   const bottom = flipped ? review.black : review.white;
   const analyzing = status === 'analyzing' || status === 'loading-engine';
-  const pct = progress ? (100 * progress.done) / progress.total : 0;
+  const downloading = status === 'loading-engine' && netProgress && netProgress.loaded < netProgress.total;
+  const pct = downloading ? (100 * netProgress!.loaded) / netProgress!.total : progress ? (100 * progress.done) / progress.total : 0;
 
   const polishButton =
     settings.llm.enabled && settings.llm.endpoint && move && !line ? (
@@ -289,8 +293,13 @@ export function App() {
           </div>
           <div className="row">
             <span className="grow num">
-              {status === 'loading-engine' && 'Starting engine…'}
-              {status === 'analyzing' && progress && `Analysing · ${progress.done}/${progress.total} positions${progress.etaMs > 1500 ? ` · about ${fmtTime(progress.etaMs)} left` : ''}`}
+              {status === 'loading-engine' &&
+                (netProgress && netProgress.loaded < netProgress.total
+                  ? `Downloading the full-strength engine (one time) · ${(netProgress.loaded / 1e6).toFixed(0)} / ${(netProgress.total / 1e6).toFixed(0)} MB`
+                  : 'Starting engine…')}
+              {status === 'analyzing' &&
+                progress &&
+                `${progress.phase === 'verify' ? 'Double-checking critical moves deeper' : 'Analysing'} · ${progress.done}/${progress.total} positions${progress.etaMs > 1500 ? ` · about ${fmtTime(progress.etaMs)} left` : ''}`}
               {status === 'analyzing' && !progress && 'Analysing…'}
               {status === 'cancelled' && 'Analysis stopped. Results so far are kept.'}
               {status === 'error' && `Engine error: ${session.error}`}

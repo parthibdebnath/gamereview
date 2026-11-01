@@ -29,7 +29,7 @@ function serviceWorker(): Plugin {
       };
       walk(dist);
       // The multi-threaded engine build is opt-in (Settings); it is cached on first use instead.
-      const optional = /engine\/stockfish-18-lite\.(js|wasm)$/;
+      const optional = /engine\/(stockfish-18-lite\.(js|wasm)|stockfish-18-full\.part\d+\.bin)$/;
       const list = files.filter((f) => f !== 'sw.js' && !f.endsWith('.map') && !f.endsWith('COPYING.txt') && !optional.test(f));
       const version = Date.now().toString(36);
       const tpl = readFileSync('src/sw.template.js', 'utf8');

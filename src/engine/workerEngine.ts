@@ -1,4 +1,5 @@
 import { UciEngine } from './uci';
+import { fullNetUrl } from './fullNet';
 import type { EngineInfo } from './types';
 
 /**
@@ -29,6 +30,11 @@ export interface WorkerEngineOptions {
   threads?: number;
   hashMb?: number;
   base?: string;
+  /**
+   * 'full': full NNUE net (stronger; single-threaded only; downloaded on first use).
+   * 'lite': small net shipped with the app.
+   */
+  net?: 'lite' | 'full';
 }
 
 export class WorkerEngine extends UciEngine {
@@ -43,10 +49,16 @@ export class WorkerEngine extends UciEngine {
   }
 
   async init(): Promise<EngineInfo> {
-    const threaded = canUseThreads() && (this.opts.threads ?? defaultThreads()) > 1;
-    const file = threaded ? 'stockfish-18-lite.js' : 'stockfish-18-lite-single.js';
+    const full = this.opts.net === 'full';
+    const threaded = !full && canUseThreads() && (this.opts.threads ?? defaultThreads()) > 1;
     const base = this.opts.base ?? import.meta.env.BASE_URL + 'engine/';
-    this.worker = new Worker(base + file);
+    if (full) {
+      // The engine script takes its wasm URL from the location hash.
+      const wasm = await fullNetUrl(base);
+      this.worker = new Worker(base + 'stockfish-18-single.js#' + encodeURIComponent(wasm));
+    } else {
+      this.worker = new Worker(base + (threaded ? 'stockfish-18-lite.js' : 'stockfish-18-lite-single.js'));
+    }
     this.worker.onmessage = (e: MessageEvent) => {
       const data = typeof e.data === 'string' ? e.data : String(e.data ?? '');
       for (const line of data.split('\n')) if (line) this.receive(line);
@@ -61,8 +73,8 @@ export class WorkerEngine extends UciEngine {
     this.setOption('Hash', this.opts.hashMb ?? (threaded ? 64 : 32));
     await this.isReady();
     this.info = {
-      name: `${name} (lite NNUE, ${threads} thread${threads > 1 ? 's' : ''})`,
-      id: 'sf18-lite',
+      name: `${name} (${full ? 'full' : 'lite'} NNUE, ${threads} thread${threads > 1 ? 's' : ''})`,
+      id: full ? 'sf18-full' : 'sf18-lite',
       threads,
       multiThreaded: threaded,
     };

@@ -72,6 +72,8 @@ button:disabled { cursor: default; opacity: 0.45; }
   border: 1px solid var(--outline); font-weight: 600; font-size: 15px;
   transition: background-color 0.15s, transform 0.1s;
 }
+.pill svg { width: 18px; height: 18px; flex: none; }
+.pill { white-space: nowrap; }
 .pill:hover:not(:disabled) { background: var(--track); }
 .pill:active:not(:disabled) { transform: scale(0.98); }
 .pill.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
@@ -268,6 +270,18 @@ button:disabled { cursor: default; opacity: 0.45; }
 .history .item .s { font-size: 13px; color: var(--secondary); margin-top: 3px; }
 .history .acc { font-size: 13px; color: var(--secondary); text-align: right; }
 .drop { outline: 2px dashed var(--fg); outline-offset: 4px; border-radius: 16px; }
+
+/* Find games */
+.findgames { display: flex; flex-direction: column; gap: 12px; }
+.gamelist { max-height: 420px; overflow-y: auto; }
+.gamelist .item { grid-template-columns: auto 1fr auto; }
+.gamelist .elo { color: var(--secondary); font-weight: 500; }
+.outcome {
+  min-width: 50px; text-align: center; font-size: 12.5px; font-weight: 750; padding: 4px 8px;
+  border-radius: 999px; border: 1px solid var(--outline);
+}
+.outcome.won { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.outcome.lost { border-style: dashed; color: var(--secondary); }
 
 /* Settings sheet */
 .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 50; display: flex; justify-content: flex-end; }

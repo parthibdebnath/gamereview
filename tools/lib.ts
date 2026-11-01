@@ -2,7 +2,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { OpeningBook, type OpeningDb } from '../src/core/openings';
 import { hashKey } from '../src/core/hash';
-import { analyzeGame, type AnalysisSettings } from '../src/engine/analyzer';
+import { analyzeGame, reanalyzePositions, type AnalysisSettings } from '../src/engine/analyzer';
+import { buildReview, criticalPositions } from '../src/core/review';
 import { NodeEngine } from '../src/engine/nodeEngine';
 import type { ParsedGame, PositionAnalysis } from '../src/core/types';
 import type { RatingModel } from '../src/core/rating';
@@ -20,7 +21,7 @@ export async function getEngine(flavor: 'lite-single' | 'single' = 'lite-single'
 }
 
 export function cacheKey(game: ParsedGame, s: AnalysisSettings, engineId: string): string {
-  return hashKey([game.startFen, game.plies.map((p) => p.uci).join(' '), engineId, s.depth, s.multipv, s.adaptive].join('|'));
+  return hashKey([game.startFen, game.plies.map((p) => p.uci).join(' '), engineId, s.depth, s.multipv, s.adaptive, ...(s.verify ? ['v' + s.verify] : [])].join('|'));
 }
 
 export async function analyzeCached(game: ParsedGame, s: AnalysisSettings, log = true, flavor: 'lite-single' | 'single' = 'lite-single'): Promise<PositionAnalysis[]> {
@@ -34,13 +35,21 @@ export async function analyzeCached(game: ParsedGame, s: AnalysisSettings, log =
   const t0 = Date.now();
   const bookPositions = new Set<number>();
   game.plies.forEach((p, i) => book.has(p.fenAfter) && bookPositions.add(i + 1));
-  const res = await analyzeGame(e, game, {
-    settings: s,
-    isBook: (i) => bookPositions.has(i),
-    onPosition: (_i, _a, p) => {
-      if (log) process.stderr.write(`\r  ${p.done}/${p.total}  eta ${(p.etaMs / 1000).toFixed(0)}s   `);
-    },
-  });
+  // The first pass is shared with (and cached as) the same settings without verification.
+  const firstPass = s.verify ? await analyzeCached(game, { ...s, verify: 0 }, log, flavor) : undefined;
+  let res =
+    firstPass ??
+    (await analyzeGame(e, game, {
+      settings: s,
+      isBook: (i) => bookPositions.has(i),
+      onPosition: (_i, _a, p) => {
+        if (log) process.stderr.write(`\r  ${p.done}/${p.total}  eta ${(p.etaMs / 1000).toFixed(0)}s   `);
+      },
+    }));
+  if (s.verify) {
+    const critical = criticalPositions(buildReview(game, res, { book }));
+    res = await reanalyzePositions([e], game, res, critical, s.depth + s.verify, s.multipv);
+  }
   if (log) process.stderr.write(`\r  ${res.length} positions in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
   writeFileSync(file, JSON.stringify(res));
   return res;

@@ -30,7 +30,10 @@ const settings: AnalysisSettings = { ...PRESETS[preset] };
 if (opt('--depth')) settings.depth = Number(opt('--depth'));
 if (opt('--multipv')) settings.multipv = Number(opt('--multipv'));
 if (args.includes('--no-adaptive')) settings.adaptive = false;
+if (opt('--verify')) settings.verify = Number(opt('--verify'));
+const skip = Number(opt('--skip') ?? 0);
 const source = opt('--source') ?? '.data/lichess-evals-100k.pgn';
+const flavor = (opt('--engine') === 'full' ? 'single' : 'lite-single') as 'single' | 'lite-single';
 
 function lichessEvals(pgn: string): Score[] {
   const body = pgn.slice(pgn.indexOf('\n\n') + 2);
@@ -48,7 +51,7 @@ const severityOf = (c: string | undefined) =>
 
 async function main() {
   const text = readFileSync(source, 'utf8');
-  const games = selectGames(text, nGames);
+  const games = selectGames(text, nGames + skip).slice(skip);
   mkdirSync('tools/.cache', { recursive: true });
   let accErr: number[] = [];
   const accErrSeq: number[] = [];
@@ -62,7 +65,7 @@ async function main() {
   for (const [gi, pgn] of games.entries()) {
     const game = parsePgn(pgn);
     const t0 = Date.now();
-    const analyses = await analyzeCached(game, settings, false);
+    const analyses = await analyzeCached(game, settings, false, flavor);
     const dt = Date.now() - t0;
     totalTime += dt;
     const review = buildReview(game, analyses, { book, ratingModel });
@@ -130,7 +133,7 @@ async function main() {
     return `recall ${(100 * caught / flagged).toFixed(0)}%  precision ${(100 * ourConfirmed / ourFlags).toFixed(0)}%  same severity ${(100 * exact / flagged).toFixed(0)}%`;
   };
   const report = [
-    `settings: ${JSON.stringify(settings)}  games: ${games.length}`,
+    `engine: ${flavor}  settings: ${JSON.stringify(settings)}  games: ${games.length}`,
     ...rows,
     '',
     `accuracy vs Lichess: MAE ${mae(accErr).toFixed(2)}  bias ${bias(accErr).toFixed(2)}  (n=${accErr.length})`,
@@ -148,7 +151,7 @@ async function main() {
     agree(confL),
   ].join('\n');
   console.log(report);
-  const tag = `${preset}-d${settings.depth}-mpv${settings.multipv}${settings.adaptive ? '' : '-noadapt'}`;
+  const tag = `${flavor}-${preset}-d${settings.depth}-mpv${settings.multipv}${settings.adaptive ? '' : '-noadapt'}${settings.verify ? '-v' + settings.verify : ''}${skip ? '-skip' + skip : ''}`;
   writeFileSync(`tools/.cache/validate-${tag}.txt`, report);
   closeEngine();
   process.exit(0);

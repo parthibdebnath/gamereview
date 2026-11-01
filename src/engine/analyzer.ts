@@ -15,6 +15,11 @@ export interface AnalysisSettings {
    * into the rest of the game.
    */
   adaptive: boolean;
+  /**
+   * Verification pass: critical and borderline moves are searched again this many plies deeper
+   * (0 = off). See criticalPositions() in src/core/review.ts.
+   */
+  verify?: number;
 }
 
 export const PRESETS: Record<PresetName, AnalysisSettings> = {
@@ -29,6 +34,8 @@ export interface Progress {
   /** Estimated milliseconds remaining. */
   etaMs: number;
   elapsedMs: number;
+  /** 'verify' during the deeper second pass over critical moves. */
+  phase?: 'analysis' | 'verify';
 }
 
 export interface AnalyzeGameOptions {
@@ -164,5 +171,40 @@ export async function analyzeGame(engine: EngineAdapter, game: ParsedGame, opts:
       elapsedMs: Date.now() - started,
     });
   }
+  return out;
+}
+
+/**
+ * Re-search selected positions more deeply (the "verification pass") with a pool of engines,
+ * replacing their analyses. Used for critical and borderline moves, where a deeper search most
+ * often changes the verdict (DECISIONS.md D-ENG-9).
+ */
+export async function reanalyzePositions(
+  engines: EngineAdapter[],
+  game: ParsedGame,
+  analyses: PositionAnalysis[],
+  indices: number[],
+  depth: number,
+  multipv: number,
+  opts: { signal?: AbortSignal; onPosition?: (index: number, analysis: PositionAnalysis, done: number, total: number) => void } = {},
+): Promise<PositionAnalysis[]> {
+  const uci = game.plies.map((p) => p.uci);
+  const queue = indices.filter((i) => analyses[i] && !analyses[i].terminal && analyses[i].depth < depth);
+  const out = [...analyses];
+  let next = 0;
+  let done = 0;
+  const worker = async (engine: EngineAdapter) => {
+    while (next < queue.length) {
+      if (opts.signal?.aborted) throw new DOMException('Analysis cancelled', 'AbortError');
+      const i = queue[next++];
+      const a = await engine.analyze(game.startFen, { depth, multipv, moves: uci.slice(0, i), signal: opts.signal });
+      if (opts.signal?.aborted) throw new DOMException('Analysis cancelled', 'AbortError');
+      // Keep the deeper result only if the search completed (a stopped search can be shallower).
+      if (a.lines.length && a.depth >= analyses[i].depth) out[i] = a;
+      done++;
+      opts.onPosition?.(i, out[i], done, queue.length);
+    }
+  };
+  await Promise.all(engines.map(worker));
   return out;
 }

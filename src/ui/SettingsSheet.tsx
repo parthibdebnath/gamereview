@@ -74,9 +74,32 @@ export function SettingsSheet({ settings, onChange, onClose, engine }: { setting
               { id: 'deep', label: 'Deep' },
             ]}
             value={settings.preset}
-            onChange={(v) => onChange({ ...settings, preset: v, depth: undefined, multipv: PRESETS[v].multipv })}
+            onChange={(v) => onChange({ ...settings, preset: v, depth: undefined, verify: undefined, multipv: PRESETS[v].multipv })}
           />
+          <div className="label">Engine strength</div>
+          <Tabs<'full' | 'lite'>
+            label="Engine strength"
+            items={[
+              { id: 'full', label: 'Full net (strongest)' },
+              { id: 'lite', label: 'Lite net (faster)' },
+            ]}
+            value={settings.engineNet}
+            onChange={(v) => set('engineNet', v)}
+          />
+          <p className="note">
+            The full net evaluates positions more accurately; it is a one-time 76 MB download (kept for offline use) and needs ~250 MB of memory per engine. Lite is 7 MB
+            and quicker.
+          </p>
           <Slider title="Search depth" value={depth} min={8} max={24} step={1} format={(v) => `${v}`} onChange={(v) => set('depth', v)} />
+          <Slider
+            title="Double-check critical moves"
+            value={settings.verify ?? PRESETS[settings.preset].verify ?? 0}
+            min={0}
+            max={8}
+            step={2}
+            format={(v) => (v ? `+${v} plies deeper` : 'off')}
+            onChange={(v) => set('verify', v)}
+          />
           <Row title="Engine lines" desc="Lines per position; 3 gives the most consistent judgments, 2 is faster.">
             <Tabs<string> label="Engine lines" items={[{ id: '2', label: '2' }, { id: '3', label: '3' }]} value={String(settings.multipv)} onChange={(v) => set('multipv', Number(v))} />
           </Row>
@@ -175,8 +198,8 @@ export function SettingsSheet({ settings, onChange, onClose, engine }: { setting
         <section>
           <h3>Online extras (optional)</h3>
           <p className="note">The review never needs the network. These features are off by default and only run when you use them.</p>
-          <Row title="Import from Lichess links">
-            <Switch label="Import from Lichess links" checked={settings.onlineImport} onChange={(v) => set('onlineImport', v)} />
+          <Row title="Online game lookup" desc="Find games by Lichess / Chess.com username, and import Lichess links.">
+            <Switch label="Online game lookup" checked={settings.onlineImport} onChange={(v) => set('onlineImport', v)} />
           </Row>
           <Row title="Polish wording with an LLM" desc="Sends the move's verified facts (not your whole game) to an OpenAI-compatible endpoint you choose.">
             <Switch label="Polish wording with an LLM" checked={settings.llm.enabled} onChange={(v) => onChange({ ...settings, llm: { ...settings.llm, enabled: v } })} />
