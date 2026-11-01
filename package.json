@@ -1,0 +1,38 @@
+{
+  "name": "gamereview",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "predev": "node scripts/copy-engine.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-engine.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "review": "vite-node tools/review.ts --",
+    "validate": "vite-node tools/validate.ts --",
+    "calibrate": "vite-node tools/calibrate.ts --",
+    "openings": "vite-node tools/build-openings.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@lichess-org/chessground": "^10.5.0",
+    "chess.js": "^1.4.0",
+    "idb": "^8.0.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "stockfish": "^18.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.5",
+    "vitest": "^3.2.7"
+  }
+}

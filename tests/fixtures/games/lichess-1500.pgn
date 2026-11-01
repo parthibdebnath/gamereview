@@ -1,0 +1,14 @@
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/97ABI3Rl"]
+[Date "2025.06.01"]
+[White "psolimyn"]
+[Black "FaresAbuawad"]
+[Result "0-1"]
+[WhiteElo "1531"]
+[BlackElo "1454"]
+[ECO "A40"]
+[Opening "Horwitz Defense"]
+[TimeControl "300+0"]
+[Termination "Normal"]
+
+1. d4 e6 2. Bf4 c5 3. d5 Nf6 4. dxe6 fxe6 5. Nc3 a6 6. Nf3 d6 7. Bg5 Be7 8. e4 O-O 9. e5 dxe5 10. Nxe5 Nbd7 11. Bc4 Nxe5 12. Bb3 c4 13. Ba4 b5 14. Bxb5 axb5 15. Nxb5 Qa5+ 16. Nc3 Bb4 17. O-O Bxc3 18. bxc3 Qxc3 19. Bxf6 Rxf6 20. Qd8+ Rf8 21. Qg5 Ng6 22. Rae1 e5 23. Re3 Qxc2 24. h4 Rxa2 25. h5 Rxf2 26. Qd8+ Rf8 27. Qd5+ Kh8 28. Rxf8+ Nxf8 29. Rg3 Qc1+ 30. Kh2 Qh6 31. Qxe5 Qf6 32. Qc5 Bb7 33. Qxc4 h6 34. Qxa2 Qh4+ 35. Rh3 Qf4+ 36. Rg3 Qh4+ 37. Rh3 Qf4+ 38. g3 Qg5 39. Qb2 Qd5 40. Rh4 Qh1# 0-1
